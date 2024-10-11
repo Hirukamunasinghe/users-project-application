@@ -3,6 +3,7 @@ import { SlArrowLeft, SlArrowRight } from "react-icons/sl";
 import { CiSearch } from "react-icons/ci";
 import axios from "axios";
 
+
 const Home = () => {
   const [activeTab, setActiveTab] = useState("userGroups");
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -14,6 +15,44 @@ const Home = () => {
   const [checkedDocumentationSearch, setCheckedDocumentationSearch] = useState(
     {}
   );
+
+  const handleServicePilotChangeForGroup = (groupId) => {
+    setCheckedServicesByGroup((prev) => ({
+      ...prev,
+      [groupId]: !prev[groupId], // Toggle the checkbox for the service pilot
+    }));
+  };
+
+  const handleDocumentationSearchChangeForGroup = (groupId) => {
+    setCheckedDocumentationSearch((prev) => ({
+      ...prev,
+      [groupId]: !prev[groupId], // Toggle the checkbox for "Documentation Search"
+    }));
+  };
+
+    // Handler for Service Pilot checkbox in Users tab
+    const handleUserServicePilotChange = (userId) => {
+      setCheckedUsers((prev) => ({
+        ...prev,
+        [userId]: {
+          ...prev[userId],
+          servicePilot: !prev[userId]?.servicePilot // Toggle the checkbox for the service pilot
+        }
+      }));
+    };
+  
+    // Handler for Documentation Search checkbox in Users tab
+    const handleUserDocumentationSearchChange = (userId) => {
+      setCheckedUsers((prev) => ({
+        ...prev,
+        [userId]: {
+          ...prev[userId],
+          documentationSearch: !prev[userId]?.documentationSearch // Toggle the checkbox for "Documentation Search"
+        }
+      }));
+    };
+
+    
 
   useEffect(() => {
     const fetchUserGroups = async () => {
@@ -53,19 +92,7 @@ const Home = () => {
     }
   };
 
-  const handleServicePilotChangeForGroup = (groupId) => {
-    setCheckedServicesByGroup((prev) => ({
-      ...prev,
-      [groupId]: !prev[groupId], // Toggle the checkbox for the service pilot
-    }));
-  };
 
-  const handleDocumentationSearchChangeForGroup = (groupId) => {
-    setCheckedDocumentationSearch((prev) => ({
-      ...prev,
-      [groupId]: !prev[groupId], // Toggle the checkbox for "Documentation Search"
-    }));
-  };
 
   const startRange = currentPage * rowsPerPage + 1;
   const endRange = Math.min(
@@ -158,72 +185,83 @@ const Home = () => {
 
                   {displayedData.map((item, index, arr) => (
                     <div key={index}>
-                      <div className="group-data py-[15px] flex justify-between">
-                        {activeTab === "userGroups" ? (
-                          <h2 className="text-sm ml-[20px]">{item.name}</h2>
-                        ) : (
-                          <h2 className="text-sm ml-[20px] w-[200px]">
-                            {item.name}
+                    <div className="group-data py-[15px] flex justify-between">
+                      {activeTab === "userGroups" ? (
+                        <h2 className="text-sm ml-[20px]">{item.name}</h2>
+                      ) : (
+                        <h2 className="text-sm ml-[20px] w-[200px]">{item.name}</h2>
+                      )}
+                      <div className="flex gap-[140px] mr-[50px]">
+                        {activeTab === "users" && (
+                          <h2 className="text-sm w-[150px] mr-[275px] text-left">
+                            {item.userGroup}
                           </h2>
                         )}
-                        <div className="flex gap-[140px] mr-[50px]">
-                          {activeTab === "users" && (
-                            <h2 className="text-sm w-[150px] mr-[275px] text-left">
-                              {item.userGroup}
-                            </h2>
+                  
+                        {/* Service Pilot Checkbox */}
+                        <div className="flex items-center">
+                          {activeTab === "userGroups" && checkedServicesByGroup[item.userGroup] ? (
+                            // Show "-" if already checked in "users" tab
+                            <div className="flex items-center justify-center w-4 h-4 border border-gray-400 bg-gray-200">-</div>
+                          ) : (
+                            <input
+                              type="checkbox"
+                              className={`custom-checkbox h-4 w-4 appearance-none border border-[#788493] rounded-sm ${
+                                activeTab === "users"
+                                  ? checkedServicesByGroup[item.userGroup]
+                                    ? "bg-[#D3D3D3] checked:bg-[#D3D3D3] checked:border-[#D3D3D3] opacity-50"
+                                    : "bg-[#788493] border-gray-400"
+                                  : "bg-[#788493] checked:bg-[#336FE4] checked:border-[#336FE4]"
+                              }`}
+                              checked={
+                                activeTab === "userGroups"
+                                  ? checkedServicesByGroup[item.name] || false
+                                  : checkedServicesByGroup[item.userGroup] || false
+                              }
+                              disabled={activeTab === "userGroups" && checkedServicesByGroup[item.userGroup]} // Disable checkbox in userGroups if checked in users
+                              onChange={() =>
+                                handleServicePilotChangeForGroup(
+                                  activeTab === "userGroups" ? item.name : item.userGroup
+                                )
+                              }
+                            />
                           )}
-                          <input
-                            type="checkbox"
-                            className={`custom-checkbox h-4 w-4 appearance-none border border-[#788493] rounded-sm ${
-                              activeTab === "users"
-                                ? checkedServicesByGroup[item.userGroup]
-                                  ? "bg-[#788493] checked:bg-[#788493] checked:border-[#788493] opacity-50"
-                                  : "bg-[#788493] border-gray-400"
-                                : "bg-[#788493] checked:bg-[#336FE4] checked:border-[#336FE4]"
-                            }`}
-                            checked={
-                              activeTab === "userGroups"
-                                ? checkedServicesByGroup[item.name] || false
-                                : checkedServicesByGroup[item.userGroup] ||
-                                  false
-                            }
-                            onChange={
-                              activeTab === "userGroups"
-                                ? () =>
-                                    handleServicePilotChangeForGroup(item.name)
-                                : undefined
-                            }
-                          />
-                          <input
-                            type="checkbox"
-                            className={`custom-checkbox h-4 w-4 appearance-none border border-[#788493] rounded-sm ${
-                              activeTab === "users"
-                                ? checkedDocumentationSearch[item.userGroup]
-                                  ? "bg-[#788493] checked:bg-[#788493] checked:border-[#788493] opacity-50"
-                                  : "bg-[#788493] border-gray-400"
-                                : "bg-[#788493] checked:bg-[#336FE4] checked:border-[#336FE4]"
-                            }`}
-                            checked={
-                              activeTab === "userGroups"
-                                ? checkedDocumentationSearch[item.name] || false
-                                : checkedDocumentationSearch[item.userGroup] ||
-                                  false
-                            }
-                            onChange={
-                              activeTab === "userGroups"
-                                ? () =>
-                                    handleDocumentationSearchChangeForGroup(
-                                      item.name
-                                    )
-                                : undefined
-                            }
-                          />
+                        </div>
+                  
+                        {/* Documentation Search Checkbox */}
+                        <div className="flex items-center">
+                          {activeTab === "userGroups" && checkedDocumentationSearch[item.userGroup] ? (
+                            // Show "-" if already checked in "users" tab
+                            <div className="flex items-center justify-center w-4 h-4 border border-gray-400 bg-gray-200">-</div>
+                          ) : (
+                            <input
+                              type="checkbox"
+                              className={`custom-checkbox h-4 w-4 appearance-none border border-[#788493] rounded-sm ${
+                                activeTab === "users"
+                                  ? checkedDocumentationSearch[item.userGroup]
+                                    ? "bg-[#D3D3D3] checked:bg-[#D3D3D3] checked:border-[#D3D3D3] opacity-50"
+                                    : "bg-[#788493] border-gray-400"
+                                  : "bg-[#788493] checked:bg-[#336FE4] checked:border-[#336FE4]"
+                              }`}
+                              checked={
+                                activeTab === "userGroups"
+                                  ? checkedDocumentationSearch[item.name] || false
+                                  : checkedDocumentationSearch[item.userGroup] || false
+                              }
+                              disabled={activeTab === "userGroups" && checkedDocumentationSearch[item.userGroup]} // Disable checkbox in userGroups if checked in users
+                              onChange={() =>
+                                handleDocumentationSearchChangeForGroup(
+                                  activeTab === "userGroups" ? item.name : item.userGroup
+                                )
+                              }
+                            />
+                          )}
                         </div>
                       </div>
-                      {index !== arr.length - 1 && (
-                        <hr className="border-gray-500" />
-                      )}
                     </div>
+                    {index !== arr.length - 1 && <hr className="border-gray-500" />}
+                  </div>
+            
                   ))}
                 </div>
               </td>
