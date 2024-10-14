@@ -3,7 +3,6 @@ import { SlArrowLeft, SlArrowRight } from "react-icons/sl";
 import { CiSearch } from "react-icons/ci";
 import axios from "axios";
 
-
 const Home = () => {
   const [activeTab, setActiveTab] = useState("userGroups");
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -15,44 +14,49 @@ const Home = () => {
   const [checkedDocumentationSearch, setCheckedDocumentationSearch] = useState(
     {}
   );
+  const [tickedGroups, setTickedGroups] = useState({}); // New state for managing ticked groups
 
   const handleServicePilotChangeForGroup = (groupId) => {
     setCheckedServicesByGroup((prev) => ({
       ...prev,
-      [groupId]: !prev[groupId], // Toggle the checkbox for the service pilot
+      [groupId]: !prev[groupId],
     }));
   };
 
   const handleDocumentationSearchChangeForGroup = (groupId) => {
     setCheckedDocumentationSearch((prev) => ({
       ...prev,
-      [groupId]: !prev[groupId], // Toggle the checkbox for "Documentation Search"
+      [groupId]: !prev[groupId],
     }));
   };
 
-    // Handler for Service Pilot checkbox in Users tab
-    const handleUserServicePilotChange = (userId) => {
-      setCheckedUsers((prev) => ({
+  const handleUserServicePilotChange = (userId, userGroup) => {
+    setCheckedUsers((prev) => {
+      const newCheckedUsers = {
         ...prev,
         [userId]: {
           ...prev[userId],
-          servicePilot: !prev[userId]?.servicePilot // Toggle the checkbox for the service pilot
-        }
-      }));
-    };
-  
-    // Handler for Documentation Search checkbox in Users tab
-    const handleUserDocumentationSearchChange = (userId) => {
-      setCheckedUsers((prev) => ({
-        ...prev,
-        [userId]: {
-          ...prev[userId],
-          documentationSearch: !prev[userId]?.documentationSearch // Toggle the checkbox for "Documentation Search"
-        }
-      }));
-    };
+          servicePilot: !prev[userId]?.servicePilot,
+          userGroup,
+        },
+      };
+      return { ...newCheckedUsers };
+    });
+  };
 
-    
+  const handleUserDocumentationSearchChange = (userId, userGroup) => {
+    setCheckedUsers((prev) => {
+      const newCheckedUsers = {
+        ...prev,
+        [userId]: {
+          ...prev[userId],
+          documentationSearch: !prev[userId]?.documentationSearch,
+          userGroup,
+        },
+      };
+      return { ...newCheckedUsers };
+    });
+  };
 
   useEffect(() => {
     const fetchUserGroups = async () => {
@@ -77,8 +81,8 @@ const Home = () => {
           (currentPage + 1) * rowsPerPage
         );
 
-  const totalItems = activeTab === "users" ? users.length : userGroups.length; // Total count of users or user groups
-  const totalPages = Math.ceil(totalItems / rowsPerPage); // Total pages based on the number of items and rows per page
+  const totalItems = activeTab === "users" ? users.length : userGroups.length;
+  const totalPages = Math.ceil(totalItems / rowsPerPage);
 
   const handleNextPage = () => {
     if (currentPage < totalPages - 1) {
@@ -92,13 +96,57 @@ const Home = () => {
     }
   };
 
-
-
   const startRange = currentPage * rowsPerPage + 1;
-  const endRange = Math.min(
-    (currentPage + 1) * rowsPerPage,
-    totalItems // Use totalItems instead of length of displayedData
-  );
+  const endRange = Math.min((currentPage + 1) * rowsPerPage, totalItems);
+
+  const isDashDisplayedForGroup = (groupId) => {
+    return Object.values(checkedUsers).some(
+      (user) => user.userGroup === groupId && user.servicePilot
+    );
+  };
+
+  const isDashDisplayedForDocumentation = (groupId) => {
+    return Object.values(checkedUsers).some(
+      (user) => user.userGroup === groupId && user.documentationSearch
+    );
+  };
+
+  const isGreyishForServicePilot = (userGroup) => {
+    return checkedServicesByGroup[userGroup];
+  };
+
+  const isGreyishForDocumentationSearch = (userGroup) => {
+    return checkedDocumentationSearch[userGroup];
+  };
+
+  const handleTabChange = (newTab) => {
+    if (newTab === "users") {
+      const updatedCheckedUsers = {};
+
+      users.forEach((user) => {
+        const userGroup = user.userGroup;
+        const isChecked = checkedServicesByGroup[userGroup];
+        updatedCheckedUsers[user.id] = {
+          servicePilot: isChecked,
+          documentationSearch: checkedDocumentationSearch[userGroup] || false,
+          userGroup,
+        };
+      });
+
+      setCheckedUsers(updatedCheckedUsers);
+    }
+
+    setActiveTab(newTab);
+    setCurrentPage(0);
+  };
+
+  // New function to handle the tick/dash toggle
+  const toggleGroupTick = (groupId) => {
+    setTickedGroups((prev) => ({
+      ...prev,
+      [groupId]: prev[groupId] ? !prev[groupId] : true,
+    }));
+  };
 
   return (
     <div>
@@ -124,10 +172,7 @@ const Home = () => {
                           ? "underline underline-offset-4 decoration-white"
                           : ""
                       }`}
-                      onClick={() => {
-                        setActiveTab("userGroups");
-                        setCurrentPage(0);
-                      }}
+                      onClick={() => handleTabChange("userGroups")}
                     >
                       User groups
                     </span>
@@ -137,10 +182,7 @@ const Home = () => {
                           ? "underline underline-offset-4 decoration-white"
                           : ""
                       }`}
-                      onClick={() => {
-                        setActiveTab("users");
-                        setCurrentPage(0);
-                      }}
+                      onClick={() => handleTabChange("users")}
                     >
                       Users
                     </span>
@@ -185,83 +227,123 @@ const Home = () => {
 
                   {displayedData.map((item, index, arr) => (
                     <div key={index}>
-                    <div className="group-data py-[15px] flex justify-between">
-                      {activeTab === "userGroups" ? (
-                        <h2 className="text-sm ml-[20px]">{item.name}</h2>
-                      ) : (
-                        <h2 className="text-sm ml-[20px] w-[200px]">{item.name}</h2>
-                      )}
-                      <div className="flex gap-[140px] mr-[50px]">
-                        {activeTab === "users" && (
-                          <h2 className="text-sm w-[150px] mr-[275px] text-left">
-                            {item.userGroup}
+                      <div className="group-data py-[15px] flex justify-between">
+                        {activeTab === "userGroups" ? (
+                          <h2 className="text-sm ml-[20px]">{item.name}</h2>
+                        ) : (
+                          <h2 className="text-sm ml-[20px] w-[200px]">
+                            {item.name}
                           </h2>
                         )}
-                  
-                        {/* Service Pilot Checkbox */}
-                        <div className="flex items-center">
-                          {activeTab === "userGroups" && checkedServicesByGroup[item.userGroup] ? (
-                            // Show "-" if already checked in "users" tab
-                            <div className="flex items-center justify-center w-4 h-4 border border-gray-400 bg-gray-200">-</div>
-                          ) : (
-                            <input
-                              type="checkbox"
-                              className={`custom-checkbox h-4 w-4 appearance-none border border-[#788493] rounded-sm ${
-                                activeTab === "users"
-                                  ? checkedServicesByGroup[item.userGroup]
-                                    ? "bg-[#D3D3D3] checked:bg-[#D3D3D3] checked:border-[#D3D3D3] opacity-50"
-                                    : "bg-[#788493] border-gray-400"
-                                  : "bg-[#788493] checked:bg-[#336FE4] checked:border-[#336FE4]"
-                              }`}
-                              checked={
-                                activeTab === "userGroups"
-                                  ? checkedServicesByGroup[item.name] || false
-                                  : checkedServicesByGroup[item.userGroup] || false
-                              }
-                              disabled={activeTab === "userGroups" && checkedServicesByGroup[item.userGroup]} // Disable checkbox in userGroups if checked in users
-                              onChange={() =>
-                                handleServicePilotChangeForGroup(
-                                  activeTab === "userGroups" ? item.name : item.userGroup
-                                )
-                              }
-                            />
+                        <div className="flex gap-[140px] mr-[50px]">
+                          {activeTab === "users" && (
+                            <h2 className="text-sm w-[150px] mr-[275px] text-left">
+                              {item.userGroup}
+                            </h2>
                           )}
-                        </div>
-                  
-                        {/* Documentation Search Checkbox */}
-                        <div className="flex items-center">
-                          {activeTab === "userGroups" && checkedDocumentationSearch[item.userGroup] ? (
-                            // Show "-" if already checked in "users" tab
-                            <div className="flex items-center justify-center w-4 h-4 border border-gray-400 bg-gray-200">-</div>
-                          ) : (
-                            <input
-                              type="checkbox"
-                              className={`custom-checkbox h-4 w-4 appearance-none border border-[#788493] rounded-sm ${
-                                activeTab === "users"
-                                  ? checkedDocumentationSearch[item.userGroup]
-                                    ? "bg-[#D3D3D3] checked:bg-[#D3D3D3] checked:border-[#D3D3D3] opacity-50"
-                                    : "bg-[#788493] border-gray-400"
-                                  : "bg-[#788493] checked:bg-[#336FE4] checked:border-[#336FE4]"
-                              }`}
-                              checked={
-                                activeTab === "userGroups"
-                                  ? checkedDocumentationSearch[item.name] || false
-                                  : checkedDocumentationSearch[item.userGroup] || false
-                              }
-                              disabled={activeTab === "userGroups" && checkedDocumentationSearch[item.userGroup]} // Disable checkbox in userGroups if checked in users
-                              onChange={() =>
-                                handleDocumentationSearchChangeForGroup(
-                                  activeTab === "userGroups" ? item.name : item.userGroup
-                                )
-                              }
-                            />
-                          )}
+
+                          {/* Service Pilot Checkbox */}
+                          <div className="flex items-center">
+                            {activeTab === "userGroups" &&
+                            isDashDisplayedForGroup(item.name) ? (
+                              <div
+                                className="flex items-center justify-center w-4 h-4 border border-gray-400"
+                                onClick={() => toggleGroupTick(item.name)} // Toggle tick/dash
+                              >
+                                {tickedGroups[item.name] ? (
+                                  <span className="text-white cursor-pointer bg:blue-500">
+                                    ✓
+                                  </span> // Display tick
+                                ) : (
+                                  <span className="text-white cursor-pointer">
+                                    -
+                                  </span> // Display dash
+                                )}
+                              </div>
+                            ) : (
+                              <input
+                                type="checkbox"
+                                className={`custom-checkbox h-4 w-4 appearance-none border border-[#788493] rounded-sm ${
+                                  activeTab === "users"
+                                    ? checkedUsers[item.id]?.servicePilot
+                                      ? "bg-[#D3D3D3] checked:bg-[#D3D3D3] checked:border-[#D3D3D3] opacity-50"
+                                      : "bg-[#788493] border-gray-400"
+                                    : "bg-[#788493] checked:bg-[#336FE4] checked:border-[#336FE4]"
+                                }`}
+                                checked={
+                                  activeTab === "userGroups"
+                                    ? checkedServicesByGroup[item.name] || false
+                                    : checkedUsers[item.id]?.servicePilot ||
+                                      false
+                                }
+                                onChange={() =>
+                                  activeTab === "userGroups"
+                                    ? handleServicePilotChangeForGroup(
+                                        item.name
+                                      )
+                                    : handleUserServicePilotChange(
+                                        item.id,
+                                        item.userGroup
+                                      )
+                                }
+                              />
+                            )}
+                          </div>
+
+                          {/* Documentation Search Checkbox */}
+                          <div className="flex items-center">
+                            {activeTab === "userGroups" &&
+                            isDashDisplayedForDocumentation(item.name) ? (
+                              <div
+                                className="flex items-center justify-center w-4 h-4 border border-gray-400"
+                                onClick={() => toggleGroupTick(item.name)} // Toggle tick/dash
+                              >
+                                {tickedGroups[item.name] ? (
+                                  <span className="text-white cursor-pointer bg:blue-500">✓</span> // Display tick
+                                ) : (
+                                  <span className="text-white cursor-pointer">-</span> // Display dash
+                                )}
+                              </div>
+                            ) : (
+                              <input
+                                type="checkbox"
+                                className={`custom-checkbox h-4 w-4 appearance-none border border-[#788493] rounded-sm ${
+                                  activeTab === "users"
+                                    ? checkedUsers[item.id]?.documentationSearch
+                                      ? "bg-[#D3D3D3] checked:bg-[#D3D3D3] checked:border-[#D3D3D3] opacity-50"
+                                      : "bg-[#788493] border-gray-400"
+                                    : "bg-[#788493] checked:bg-[#336FE4] checked:border-[#336FE4]"
+                                }`}
+                                checked={
+                                  activeTab === "userGroups"
+                                    ? checkedDocumentationSearch[item.name] ||
+                                      false
+                                    : checkedUsers[item.id]
+                                        ?.documentationSearch || false
+                                }
+                                onChange={() => {
+                                  if (activeTab === "userGroups") {
+                                    handleDocumentationSearchChangeForGroup(
+                                      item.name
+                                    );
+                                  } else {
+                                    handleUserDocumentationSearchChange(
+                                      item.id,
+                                      item.userGroup
+                                    );
+                                  }
+                                }}
+                              />
+                            )}
+                          </div>
                         </div>
                       </div>
+
+                      {/* Separator */}
+                      {index !== arr.length - 1 && (
+                        <hr className="border-gray-500" />
+                      )}
                     </div>
-                    {index !== arr.length - 1 && <hr className="border-gray-500" />}
-                  </div>
-            
                   ))}
                 </div>
               </td>
@@ -269,6 +351,7 @@ const Home = () => {
           </tbody>
         </table>
 
+        <hr className="border-gray-500 w-full " />
         <div className="lower-text-fields mt-[6px]">
           <div className="flex gap-[50px] justify-end">
             <h1>Rows per page :</h1>
@@ -281,41 +364,31 @@ const Home = () => {
               <option value={10}>10</option>
             </select>
             <h1>
-              {startRange}-{endRange} of {totalItems} {/* Update total count */}
+              {startRange}-{endRange} of {totalItems}{" "}
+              {/* Changed to totalItems */}
             </h1>
-            <button
-              onClick={handlePrevPage}
-              disabled={currentPage === 0}
-              className={`cursor-pointer ${
-                currentPage === 0 ? "opacity-50 cursor-not-allowed" : ""
-              }`}
-            >
+            <button onClick={handlePrevPage} disabled={currentPage === 0}>
               <SlArrowLeft />
             </button>
             <button
               onClick={handleNextPage}
-              disabled={currentPage >= totalPages - 1}
-              className={`cursor-pointer ${
-                currentPage >= totalPages - 1
-                  ? "opacity-50 cursor-not-allowed"
-                  : ""
-              }`}
+              disabled={currentPage === totalPages - 1}
             >
               <SlArrowRight />
             </button>
           </div>
         </div>
-      </div>
-      <hr className="border-gray-500 mt-[15px]" />
+        
 
-      <div className="btnmaindiv flex justify-end mr-[80px] mb-[10px]">
-        <div className="btndiv flex gap-[40px] mt-[30px]">
-          <button className="bg-bgcolor p-[10px] w-[100px] border border-blue-500 rounded-md">
-            Skip
-          </button>
-          <button className="bg-blue-500 text-white p-[10px] w-[100px] border border-blue-500 rounded-md">
-            Save
-          </button>
+        <div className="btnmaindiv w-full flex justify-end mr-[80px] mb-[10px]">
+          <div className="btndiv flex gap-[40px] mr-[-10px] mt-[30px]">
+            <button className="bg-bgcolor p-[10px] w-[100px] border border-blue-500 rounded-md">
+              Skip
+            </button>
+            <button className="bg-blue-500 text-white p-[10px] w-[100px] border border-blue-500 rounded-md">
+              Save
+            </button>
+          </div>
         </div>
       </div>
     </div>

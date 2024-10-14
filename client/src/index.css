@@ -2,28 +2,32 @@
 @tailwind components;
 @tailwind utilities;
 
-body{
-    background-color: #242B33;
-    color: white;
-    font-family: 'Poppins', sans-serif;
-  }
 
-  .custom-checkbox {
-    position: relative; /* Required for positioning the tick */
-    cursor: pointer; /* Make the checkbox clickable */
-  }
+body {
+  background-color: #242B33;
+  color: white;
+  font-family: 'Poppins', sans-serif;
+}
+
+.custom-checkbox {
+  position: relative; /* Required for positioning the tick */
+  cursor: pointer; /* Make the checkbox clickable */
+}
+
+
+.custom-checkbox:checked::before {
+  content: ""; /* Use empty content */
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('/src/images/check.svg'); /* Path to your SVG */
+  background-size: contain; /* Scale the SVG to fit */
+  background-repeat: no-repeat; /* Prevent the SVG from repeating */
+}
+
+
   
-  .custom-checkbox:checked::before {
-    content: ""; /* Use empty content */
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url('/src/images/check.svg'); /* Path to your SVG */
-    background-size: contain; /* Scale the SVG to fit */
-    background-repeat: no-repeat;
-     /* Prevent the SVG from repeating */
-  }
   
   
