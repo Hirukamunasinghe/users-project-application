@@ -140,11 +140,23 @@ const Home = () => {
     setCurrentPage(0);
   };
 
-  // New function to handle the tick/dash toggle
-  const toggleGroupTick = (groupId) => {
+  // New function to handle the tick/dash toggle for Service Pilot
+  const toggleServicePilotTick = (groupId) => {
     setTickedGroups((prev) => ({
       ...prev,
-      [groupId]: prev[groupId] ? !prev[groupId] : true,
+      [`servicePilot_${groupId}`]: prev[`servicePilot_${groupId}`]
+        ? !prev[`servicePilot_${groupId}`]
+        : true,
+    }));
+  };
+
+  // New function to handle the tick/dash toggle for Documentation Search
+  const toggleDocumentationSearchTick = (groupId) => {
+    setTickedGroups((prev) => ({
+      ...prev,
+      [`documentationSearch_${groupId}`]: prev[`documentationSearch_${groupId}`]
+        ? !prev[`documentationSearch_${groupId}`]
+        : true,
     }));
   };
 
@@ -248,9 +260,11 @@ const Home = () => {
                             isDashDisplayedForGroup(item.name) ? (
                               <div
                                 className="flex items-center justify-center w-4 h-4 border border-gray-400"
-                                onClick={() => toggleGroupTick(item.name)} // Toggle tick/dash
+                                onClick={() =>
+                                  toggleServicePilotTick(item.name)
+                                } // Toggle tick/dash for Service Pilot
                               >
-                                {tickedGroups[item.name] ? (
+                                {tickedGroups[`servicePilot_${item.name}`] ? (
                                   <span className="text-white cursor-pointer bg:blue-500">
                                     ✓
                                   </span> // Display tick
@@ -296,12 +310,20 @@ const Home = () => {
                             isDashDisplayedForDocumentation(item.name) ? (
                               <div
                                 className="flex items-center justify-center w-4 h-4 border border-gray-400"
-                                onClick={() => toggleGroupTick(item.name)} // Toggle tick/dash
+                                onClick={() =>
+                                  toggleDocumentationSearchTick(item.name)
+                                } // Toggle tick/dash for Documentation Search
                               >
-                                {tickedGroups[item.name] ? (
-                                  <span className="text-white cursor-pointer bg:blue-500">✓</span> // Display tick
+                                {tickedGroups[
+                                  `documentationSearch_${item.name}`
+                                ] ? (
+                                  <span className="text-white cursor-pointer bg:blue-500">
+                                    ✓
+                                  </span> // Display tick
                                 ) : (
-                                  <span className="text-white cursor-pointer">-</span> // Display dash
+                                  <span className="text-white cursor-pointer">
+                                    -
+                                  </span> // Display dash
                                 )}
                               </div>
                             ) : (
@@ -352,8 +374,8 @@ const Home = () => {
         </table>
 
         <hr className="border-gray-500 w-full " />
-        <div className="lower-text-fields mt-[6px]">
-          <div className="flex gap-[50px] justify-end">
+        <div className="lower-text-fields mt-[7px]">
+          <div className="flex gap-[50px] justify-end items-center">
             <h1>Rows per page :</h1>
             <select
               className="text-white border-none cursor-pointer bg-bgcolor ml-[-30px]"
@@ -363,25 +385,37 @@ const Home = () => {
               <option value={5}>5</option>
               <option value={10}>10</option>
             </select>
+
             <h1>
-              {startRange}-{endRange} of {totalItems}{" "}
-              {/* Changed to totalItems */}
+              {startRange}-{endRange} of {totalItems}
             </h1>
-            <button onClick={handlePrevPage} disabled={currentPage === 0}>
+
+            <button
+              onClick={handlePrevPage}
+              disabled={currentPage === 0}
+              className={`p-2 ${
+                currentPage === 0 ? "opacity-50 cursor-not-allowed" : ""
+              }`}
+            >
               <SlArrowLeft />
             </button>
+
             <button
               onClick={handleNextPage}
-              disabled={currentPage === totalPages - 1}
+              disabled={currentPage >= totalPages - 1}
+              className={`p-2 ${
+                currentPage >= totalPages - 1
+                  ? "opacity-50 cursor-not-allowed"
+                  : ""
+              }`}
             >
               <SlArrowRight />
             </button>
           </div>
         </div>
-        
 
         <div className="btnmaindiv w-full flex justify-end mr-[80px] mb-[10px]">
-          <div className="btndiv flex gap-[40px] mr-[-10px] mt-[30px]">
+          <div className="btndiv flex gap-[40px]  mt-[20px]">
             <button className="bg-bgcolor p-[10px] w-[100px] border border-blue-500 rounded-md">
               Skip
             </button>
